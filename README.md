@@ -2,6 +2,8 @@
 
 A program I needed to debug some graphics. I copy and paste groups of coordinates from stdout of the debugged program into the text input in this program.
 
+![A screenshot of this program](https://github.com/sebsjames/tripoints/blob/main/tripoints.png?raw=true)
+
 ## Dependencies
 
 If you are using Debian or Ubuntu, the following `apt` command should
