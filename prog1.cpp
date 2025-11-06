@@ -4,16 +4,17 @@
 #include <iostream>
 #include <memory>
 
-#include <mplot/Visual.h>         // mplot::Visual - the scene class
-#include <mplot/GeodesicVisual.h> // mplot::GeodesicVisual
-#include <sm/vec>                 // sm::vec - a static-sized vector (like std::array) with maths
+#include <sm/vec>
+
+#include <mplot/tools.h>
+#include <mplot/Visual.h>
+#include <mplot/SphereVisual.h>
+#include <mplot/VectorVisual.h>
+#include <mplot/TriangleVisual.h>
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
-
-// The Dear ImGui Demo window (and its code imgui_demo.cpp) is useful for finding out about widgets etc
-#define COMPILE_DEMO_WINDOW 1
 
 // In this example, we extend mplot::Visual to add the ability to display a Dear ImGui frame in our window
 struct imgui_visual final : public mplot::Visual<>
@@ -47,24 +48,18 @@ struct imgui_visual final : public mplot::Visual<>
             ImGui_ImplGlfw_NewFrame();
             ImGui::NewFrame();
 
-#ifdef COMPILE_DEMO_WINDOW
-            if (this->show_imgui_demo) { ImGui::ShowDemoWindow (&this->show_imgui_demo); }
-#endif
             // Our Options window
             ImGui::Begin("Options (Esc to toggle)");
-            ImGui::Text("These are some options for your Geodesic.");
-            if (ImGui::SliderInt("Iterations", &this->geodesic_iterations, 0, 5)) {
-                this->needs_visualmodel_rebuild = true;
+            if (ImGui::SliderFloat("Thickness", &this->thickness, 0.0f, 0.3f)) { }
+            if (ImGui::ColorEdit3("Colour", this->clr.data())) {
             }
-            if (ImGui::Combo ("Colour map", &this->colour_map_index, this->colour_map_options, num_colours)) {
-                this->needs_visualmodel_rebuild = true;
+            static char buf1[512] = "";
+            if (ImGui::InputText("Coords/Tri", buf1, IM_ARRAYSIZE(buf1))) {
+                this->geom_text = std::string (buf1);
             }
-            if (ImGui::Checkbox ("Lighting", &this->lighting)) {
-                this->lightingEffects (this->lighting);
-            }
-#ifdef COMPILE_DEMO_WINDOW
-            ImGui::Checkbox ("Show demo window", &this->show_imgui_demo);
-#endif
+
+            if (ImGui::Button("Draw")) { needs_visualmodel_rebuild = true; }
+            if (ImGui::Button("Clear")) { this->vm.clear(); }
             ImGui::End();
 
             // Now render
@@ -80,21 +75,12 @@ struct imgui_visual final : public mplot::Visual<>
     // Show the GUI?
     bool show_gui = true;
 
-#ifdef COMPILE_DEMO_WINDOW
-    // Show the Dear ImGui demo window?
-    bool show_imgui_demo = false;
-#endif
+    // Some text fields for the gui
+    std::string geom_text = "";
 
-    // Use lighting?
-    bool lighting = true;
+    float thickness = 0.15f;
 
-    // The number of iterations to run the geodesic polynomial algorithm for (0 gives an icosahedron)
-    int geodesic_iterations = 0;
-
-    // A selection of linear colourmaps from mplot/ColourMap.h
-    static constexpr size_t num_colours = 6;
-    const char* colour_map_options[num_colours] = { "jet", "plasma", "devon", "acton", "berlin", "lajolla" };
-    int colour_map_index = 0; // Currently selected colourmap
+    std::array<float, 3> clr = { 1.0f, 0.0f, 0.2f };
 
     // Do the mplot::VisualModels need to be re-built?
     bool needs_visualmodel_rebuild = true;
@@ -125,41 +111,81 @@ protected:
     }
 };
 
-// A function to create mathplot VisualModels. In this case, a single icosahedral geodesic polygon - a GeodesicVisual
-mplot::GeodesicVisual<float>* make_visualmodels (imgui_visual& v, mplot::GeodesicVisual<float>* ptr)
+static constexpr std::string_view chars_num {CHARS_NUMERIC",."};
+void conditionAsNumeric (std::string& str)
 {
-    if (ptr != nullptr) { v.removeVisualModel (ptr); }
-    sm::vec<float, 3> offset = { 0, 0, 0 };
-    auto gv1 = std::make_unique<mplot::GeodesicVisual<float>> (offset, 0.9f);
-    v.bindmodel (gv1);
-    gv1->iterations = v.geodesic_iterations;
-    std::string lbl = std::string("iterations = ") + std::to_string(gv1->iterations);
-    gv1->addLabel (lbl, {0, -1, 0}, mplot::TextFeatures(0.06f));
-    gv1->cm.setType (std::string(v.colour_map_options[v.colour_map_index]));
-    gv1->finalize();
-    // re-colour after construction
-    auto gv1p = v.addVisualModel (gv1);
-    float imax_mult = 1.0f / static_cast<float>(4);
-    // sequential colouring:
-    size_t sz1 = gv1p->data.size();
-    gv1p->data.linspace (0.0f, 1 + v.geodesic_iterations * imax_mult, sz1);
-    gv1p->reinitColours();
+    std::string::size_type ptr = std::string::npos;
+    while ((ptr = str.find_last_not_of (chars_num, ptr)) != std::string::npos) {
+        str = str.erase (ptr, 1);//str[ptr] = '_'; // Replacement character
+        ptr--;
+    }
+}
+
+void add_visualmodels (imgui_visual& v)
+{
+    bool have_coord = false;
+    sm::vec<float, 3> coord;
+    bool have_tri = false;
+    sm::vec<sm::vec<float, 3>, 3> tri;
+
+    // Process v.geom_text - is it three coords or one coord?
+    std::vector<std::string> p1 = mplot::tools::stringToVector (v.geom_text, "),(");
+    std::vector<std::string> p2;
+    if (p1.size() == 1) {
+        std::cout << "1. 1p1[0] = " << p1[0] << "\n";
+        p2 = mplot::tools::stringToVector (p1[0], ",");
+        // p2 should now have 3 elements
+        if (p2.size() == 3) {
+            for (int i = 0; i < 3; ++i) {
+                conditionAsNumeric (p2[i]);
+                coord[i] = std::atof (p2[i].c_str());
+                have_coord = true;
+            }
+        }
+    } else if (p1.size() == 3) {
+        std::cout << "3: " << p1[0] << "; " << p1[1] << "; " << p1[2] << "\n";
+        for (int i = 0; i < 3; ++i) {
+            p2 = mplot::tools::stringToVector (p1[i], ",");
+            for (int j = 0; j < 3; ++j) {
+                conditionAsNumeric (p2[j]);
+                tri[i][j] = std::atof (p2[j].c_str());
+                std::cout << "tri["<<i<<"]["<<j<<"] = " << tri[i][j]
+                          << " (from " << p2[j] << ")\n";
+            }
+        }
+        have_tri = true;
+    } else {
+        std::cout << "else\n";
+    }
+
+    // Add TriVisual or SphereVisual here
+    if (have_coord) {
+        std::cout << "Draw sphere\n";
+        auto sv = std::make_unique<mplot::SphereVisual<>>(coord, v.thickness, v.clr);
+        v.bindmodel (sv);
+        sv->finalize();
+        v.addVisualModel (sv);
+    }
+    if (have_tri) {
+        std::cout << "Draw tri\n";
+        auto tv = std::make_unique<mplot::TriangleVisual<>> (sm::vec<>{}, tri[0], tri[1], tri[2], v.clr);
+        v.bindmodel (tv);
+        tv->finalize();
+        v.addVisualModel (tv);
+    }
+
     v.needs_visualmodel_rebuild = false;
-    return gv1p;
 }
 
 int main()
 {
-    imgui_visual v(1536, 1536, "Mathplot with an ImGui");
-
-    mplot::GeodesicVisual<float>* myvm = nullptr;
+    imgui_visual v(1536, 1536, "Triangles and points");
+    v.lightingEffects (true);
 
     // Display until user closes window
     while (!v.readyToFinish()) {
         v.waitevents (0.018); // Wait or poll for events
-        if (v.needs_visualmodel_rebuild == true) {
-            myvm = make_visualmodels (v, myvm);
-        }
+        if (v.needs_visualmodel_rebuild == true) { add_visualmodels (v); }
         v.render();           // Render mathplot objects
         v.gui_draw();         // Render Dear ImGui frame(s)
         v.swapBuffers();      // Swap buffers
