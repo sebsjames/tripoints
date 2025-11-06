@@ -53,16 +53,10 @@ set(IMGUI_SOURCES imgui/imgui.cpp
                   imgui/backends/imgui_impl_glfw.cpp imgui/backends/imgui_impl_opengl3.cpp
                   imgui/imgui_widgets.cpp imgui/imgui_tables.cpp imgui/imgui_draw.cpp imgui/imgui_demo.cpp)
 # The sample is compiled from a single c++ file along with the ImGui sources
-add_executable(prog1 prog1.cpp ${IMGUI_SOURCES})
+add_executable(tripoints tripoints.cpp ${IMGUI_SOURCES})
 
 # Mathplot code requires a number of libraries, these are the ones required for graphics
-target_link_libraries(prog1 OpenGL::GL Freetype::Freetype glfw)
-# If you change prog1 to use sm::hdfdata or sm::bezcurve, you may need to link these too:
-# set(MPLOT_LIBS_EXTRA ${ARMADILLO_LIBRARY} ${ARMADILLO_LIBRARIES} ${HDF5_C_LIBRARIES})
-
-#
-# All done!
-#
+target_link_libraries(tripoints OpenGL::GL Freetype::Freetype glfw)
 
 # This is just a useful stanza for debugging of cmake variables:
 option(DEBUG_VARIABLES OFF)
