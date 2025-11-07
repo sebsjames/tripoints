@@ -36,7 +36,7 @@ struct imgui_visual final : public mplot::Visual<>
             ImGui_ImplGlfw_NewFrame();
             ImGui::NewFrame();
             ImGui::Begin("Options (Esc to toggle)");
-            if (ImGui::SliderFloat("Thickness", &this->thickness, 0.0f, 0.3f)) { }
+            if (ImGui::SliderFloat("Thickness", &this->thickness, 0.0f, 0.02f)) { }
             if (ImGui::ColorEdit3("Colour", this->clr.data())) {
             }
             static char buf1[512] = "";
@@ -58,7 +58,7 @@ struct imgui_visual final : public mplot::Visual<>
     // Some text fields for the gui
     std::string geom_text = "";
     // radius for spheres
-    float thickness = 0.15f;
+    float thickness = 0.002f;
     // Colour for objects
     std::array<float, 3> clr = { 1.0f, 0.0f, 0.2f };
     // Do the mplot::VisualModels need to be re-built?
@@ -78,7 +78,9 @@ protected:
     }
 };
 
-static constexpr std::string_view chars_num {CHARS_NUMERIC",.-"};
+// Remove characters that aren't part of a string representation of an integer or floating point
+// number or a comma separating elements
+static constexpr std::string_view chars_num {CHARS_NUMERIC",.-e"};
 void conditionAsNumeric (std::string& str)
 {
     std::string::size_type ptr = std::string::npos;
@@ -101,7 +103,6 @@ void add_visualmodels (imgui_visual& v)
     std::vector<std::string> p1 = mplot::tools::stringToVector (v.geom_text, "),(");
     std::vector<std::string> p2;
     if (p1.size() == 1) {
-        std::cout << "1. 1p1[0] = " << p1[0] << "\n";
         p2 = mplot::tools::stringToVector (p1[0], ",");
         // p2 should now have 3 elements
         if (p2.size() == 3) {
@@ -112,7 +113,6 @@ void add_visualmodels (imgui_visual& v)
             }
         }
     } else if (p1.size() == 2) {
-        std::cout << "2: " << p1[0] << "; " << p1[1] << "\n";
         for (int i = 0; i < 2; ++i) {
             p2 = mplot::tools::stringToVector (p1[i], ",");
             for (int j = 0; j < 3; ++j) {
@@ -123,7 +123,6 @@ void add_visualmodels (imgui_visual& v)
         have_vector = true;
 
     } else if (p1.size() == 3) {
-        std::cout << "3: " << p1[0] << "; " << p1[1] << "; " << p1[2] << "\n";
         for (int i = 0; i < 3; ++i) {
             p2 = mplot::tools::stringToVector (p1[i], ",");
             for (int j = 0; j < 3; ++j) {
@@ -132,8 +131,6 @@ void add_visualmodels (imgui_visual& v)
             }
         }
         have_tri = true;
-    } else {
-        std::cout << "else\n";
     }
 
     // Add TriVisual or SphereVisual here
@@ -143,12 +140,13 @@ void add_visualmodels (imgui_visual& v)
         v.bindmodel (sv);
         sv->finalize();
         v.addVisualModel (sv);
+        v.setSceneTrans (-coord + sm::vec<>{0,0,-2});
     }
     if (have_vector) {
+        std::cout << "Draw vector\n";
         auto vvm = std::make_unique<mplot::VectorVisual<float, 3>>(vectr[0]);
         v.bindmodel (vvm);
         vvm->thevec = vectr[1];
-        std::cout << "vector direction = " << vvm->thevec << std::endl;
         vvm->vgoes = mplot::VectorGoes::FromOrigin;
         vvm->thickness = v.thickness;
         vvm->arrowhead_prop = 0.1f;
@@ -156,13 +154,15 @@ void add_visualmodels (imgui_visual& v)
         vvm->single_colour = v.clr;
         vvm->finalize();
         v.addVisualModel (vvm);
+        v.setSceneTrans (-vectr[0] + sm::vec<>{0,0,-2});
     }
     if (have_tri) {
-        std::cout << "Draw tri\n";
+        std::cout << "Draw triangle\n";
         auto tv = std::make_unique<mplot::TriangleVisual<>> (sm::vec<>{}, tri[0], tri[1], tri[2], v.clr);
         v.bindmodel (tv);
         tv->finalize();
         v.addVisualModel (tv);
+        v.setSceneTrans (-(tri[0] + tri[1] + tri[2]) / 3.0f + sm::vec<>{0,0,-2});
     }
 
     v.needs_visualmodel_rebuild = false;
@@ -170,7 +170,7 @@ void add_visualmodels (imgui_visual& v)
 
 int main()
 {
-    imgui_visual v(1536, 1536, "Triangles and points");
+    imgui_visual v(1536, 1536, "Geometry debug");
     v.lightingEffects (true);
     v.rotateAboutNearest (true);
 
