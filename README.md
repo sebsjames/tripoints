@@ -27,13 +27,13 @@ To build and run the example:
 git clone git@github.com:sebsjames/tripoints
 
 # Clone, copy or symlink mathplot INSIDE your example:
-cd mathplot_imgui # or whatever you named your fork/copy
+cd tripoints # or whatever you named your fork/copy
 git clone --recurse-submodules git@github.com:sebsjames/mathplot
 
 # Clone, copy or symlink Dear ImGui INSIDE your example:
 git clone git@github.com:ocornut/imgui
 
-# Build prog1 in a 'build' directory
+# Build it in a 'build' directory
 mkdir build
 cd build
 cmake ..
