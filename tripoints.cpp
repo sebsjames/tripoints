@@ -36,7 +36,7 @@ struct imgui_visual final : public mplot::Visual<>
             ImGui_ImplGlfw_NewFrame();
             ImGui::NewFrame();
             ImGui::Begin("Options (Esc to toggle)");
-            if (ImGui::SliderFloat("Thickness", &this->thickness, 0.0f, 0.02f)) { }
+            if (ImGui::SliderFloat("Thickness", &this->thickness, 0.0f, 0.005f)) { }
             if (ImGui::ColorEdit3("Colour", this->clr.data())) {
             }
             static char buf1[512] = "";
@@ -138,6 +138,7 @@ void add_visualmodels (imgui_visual& v)
         std::cout << "Draw sphere\n";
         auto sv = std::make_unique<mplot::SphereVisual<>>(coord, v.thickness, v.clr);
         v.bindmodel (sv);
+        sv->setAlpha (0.5f);
         sv->finalize();
         v.addVisualModel (sv);
         v.setSceneTrans (-coord + sm::vec<>{0,0,-2});
@@ -148,10 +149,11 @@ void add_visualmodels (imgui_visual& v)
         v.bindmodel (vvm);
         vvm->thevec = vectr[1];
         vvm->vgoes = mplot::VectorGoes::FromOrigin;
-        vvm->thickness = v.thickness;
+        vvm->thickness = v.thickness * 0.5f; // A bit thinner than spheres
         vvm->arrowhead_prop = 0.1f;
         vvm->fixed_colour = true;
         vvm->single_colour = v.clr;
+        vvm->setAlpha (0.5f);
         vvm->finalize();
         v.addVisualModel (vvm);
         v.setSceneTrans (-vectr[0] + sm::vec<>{0,0,-2});
