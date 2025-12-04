@@ -23,11 +23,49 @@ struct imgui_visual final : public mplot::Visual<>
         ImGui::CreateContext();
         ImGuiIO& io = ImGui::GetIO();
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+
+        // One user suggested doing this before opengl setup...
+        //auto defaultSetClipboardTextFn = io.SetClipboardTextFn;
+        //auto defaultGetClipboardTextFn = io.GetClipboardTextFn;
+        //auto defaultClipboardUserData = io.ClipboardUserData;
+
         ImGui_ImplGlfw_InitForOpenGL (this->window, true);
         ImGui_ImplOpenGL3_Init();
         constexpr int size_in_pixels = 24;
         io.Fonts->AddFontFromFileTTF ("/tmp/DejaVuSans.ttf", size_in_pixels);
+
+        // ...then this after:
+        //io.SetClipboardTextFn = defaultSetClipboardTextFn;
+        //io.GetClipboardTextFn = defaultGetClipboardTextFn;
+        //io.ClipboardUserData = defaultClipboardUserData;
+        //
+        // But it didn't work for me.
+
+
+        // Clipboard?
+        //ImGuiPlatformIO& platform_io = ImGui::GetPlatformIO();
+        //platform_io.Platform_SetClipboardTextFn = [](ImGuiContext*, const char* text) { glfwSetClipboardString (nullptr, text); };
+        //platform_io.Platform_GetClipboardTextFn = [](ImGuiContext*) { return glfwGetClipboardString (nullptr); };
+        // OR
+#if 0
+        io.SetClipboardTextFn = _IMGUISetClipboardText;
+        io.GetClipboardTextFn = _IMGUIGetClipboardText;
+#endif
     }
+
+#if 0
+    // These have to be static, so no access to this->window :(
+    static const char* _IMGUIGetClipboardText(void *)
+    {
+        std::cout << __func__ << " called\n";
+        return glfwGetClipboardString (glfwGetCurrentContext());
+    }
+    static void _IMGUISetClipboardText(void *, const char *text)
+    {
+        std::cout << __func__ << " called\n";
+        glfwSetClipboardString (glfwGetCurrentContext(), text);
+    }
+#endif
 
     void gui_draw()
     {
@@ -65,10 +103,25 @@ struct imgui_visual final : public mplot::Visual<>
     bool needs_visualmodel_rebuild = true;
 
 protected:
-    void key_callback_extra (int key, [[maybe_unused]] int scancode, int action, [[maybe_unused]] int mods) override
+#if 0
+    bool key_callback (int _key, int scancode, int action, int mods)
     {
-        if (key == mplot::key::escape && action == mplot::keyaction::press) { this->show_gui = this->show_gui ? false : true; }
-        if (key == mplot::key::h && action == mplot::keyaction::press) { std::cout << "Esc: Toggle GUI window\n"; }
+        std::cout << "tripoints key_callback\n";
+        ImGuiIO& io = ImGui::GetIO();
+        // io.SetKeyEventNativeData (ImGuiKey key, int native_keycode, scancode);
+        if (!io.WantCaptureKeyboard) {
+            std::cout << "ImGui wants mathplot to process it\n";
+            return mplot::VisualBase<>::key_callback (_key, scancode, action, mods);
+        } else {
+            std::cout << "ImGui wants it\n";
+        }
+        return false;
+    }
+#endif
+    void key_callback_extra (int _key, [[maybe_unused]] int scancode, int action, [[maybe_unused]] int mods) override
+    {
+        if (_key == mplot::key::escape && action == mplot::keyaction::press) { this->show_gui = this->show_gui ? false : true; }
+        if (_key == mplot::key::h && action == mplot::keyaction::press) { std::cout << "Esc: Toggle GUI window\n"; }
     }
     void mouse_button_callback (int button, int action, int mods = 0)
     {
