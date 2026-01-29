@@ -17,18 +17,15 @@ sudo apt install build-essential cmake git wget  \
 
 ## Building
 
-To build and run the program:
+To build and run the program make sure to **clone with recurse-submodules**:
 
 ```bash
 # Clone with recursion
-git clone git@github.com:sebsjames/tripoints
+sgit clone git@github.com:sebsjames/tripoints --recurse-submodules
 
-# Clone, copy or symlink mathplot INSIDE your example:
-cd tripoints # or whatever you named your fork/copy
-git clone --recurse-submodules git@github.com:sebsjames/mathplot
-
-# Clone, copy or symlink Dear ImGui INSIDE your example:
-git clone git@github.com:ocornut/imgui
+# If you forgot --recurse-submodules, you can now:
+# git submodule update --init --recursive
+# To get the submodules imgui and mathplot (and nested sebsjames/maths)
 
 # Build it in a 'build' directory
 mkdir build
