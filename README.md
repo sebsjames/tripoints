@@ -7,23 +7,20 @@ A program I needed to debug some graphics. I copy and paste groups of coordinate
 ## Dependencies
 
 If you are using Debian or Ubuntu, the following `apt` command should
-install the mathplot dependencies. Note that `libarmadillo-dev`
-and `libhdf5-dev` are optional. They're not used by `prog1.cpp` but they
-do allow all the mathplot headers to be used in this template.
+install the dependencies.
 
 ```bash
 sudo apt install build-essential cmake git wget  \
-                 nlohmann-java3-dev librapidxml-dev \
-                 freeglut3-dev libglu1-mesa-dev libxmu-dev libxi-dev \
-                 libglfw3-dev libfreetype-dev libarmadillo-dev libhdf5-dev
+                 nlohmann-java3-dev librapidxml-dev freeglut3-dev libxmu-dev \
+                 libxi-dev libglu1-mesa-dev libglfw3-dev libfreetype-dev
 ```
 
 ## Building
 
-To build and run the example:
+To build and run the program:
 
 ```bash
-# Clone this example
+# Clone with recursion
 git clone git@github.com:sebsjames/tripoints
 
 # Clone, copy or symlink mathplot INSIDE your example:
