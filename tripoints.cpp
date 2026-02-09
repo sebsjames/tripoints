@@ -39,7 +39,7 @@ struct imgui_visual final : public mplot::Visual<>
         if (ImGui::ColorEdit3("Colour", this->clr.data())) {
         }
 
-        ImGuiInputTextFlags flags { ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_EscapeClearsAll };
+        ImGuiInputTextFlags flags { ImGuiInputTextFlags_EscapeClearsAll };
         static char buf1[512] = "";
         if (ImGui::InputText("Coords/Tri (Esc clears)", buf1, IM_ARRAYSIZE(buf1), flags)) {
             this->geom_text = std::string (buf1);
