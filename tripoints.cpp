@@ -31,30 +31,28 @@ struct imgui_visual final : public mplot::Visual<>
 
     void gui_draw()
     {
-        if (this->show_gui == true) {
-            ImGui_ImplOpenGL3_NewFrame();
-            ImGui_ImplGlfw_NewFrame();
-            ImGui::NewFrame();
-            ImGui::Begin("Options (Esc to toggle)");
-            if (ImGui::SliderFloat("Thickness", &this->thickness, 0.0f, 0.005f)) { }
-            if (ImGui::ColorEdit3("Colour", this->clr.data())) {
-            }
-            static char buf1[512] = "";
-            if (ImGui::InputText("Coords/Tri", buf1, IM_ARRAYSIZE(buf1))) {
-                this->geom_text = std::string (buf1);
-            }
-
-            if (ImGui::Button("Draw")) { needs_visualmodel_rebuild = true; }
-            if (ImGui::Button("Clear")) { this->vm.clear(); }
-            if (ImGui::Button("Clear Last")) { this->vm.pop_back(); }
-            ImGui::End();
-            ImGui::Render();
-            ImGui_ImplOpenGL3_RenderDrawData (ImGui::GetDrawData());
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+        ImGui::Begin("Options");
+        if (ImGui::SliderFloat("Thickness", &this->thickness, 0.0f, 0.005f)) { }
+        if (ImGui::ColorEdit3("Colour", this->clr.data())) {
         }
+
+        ImGuiInputTextFlags flags { ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_EscapeClearsAll };
+        static char buf1[512] = "";
+        if (ImGui::InputText("Coords/Tri (Esc clears)", buf1, IM_ARRAYSIZE(buf1), flags)) {
+            this->geom_text = std::string (buf1);
+        }
+
+        if (ImGui::Button("Draw")) { needs_visualmodel_rebuild = true; }
+        if (ImGui::Button("Clear")) { this->vm.clear(); }
+        if (ImGui::Button("Clear Last")) { this->vm.pop_back(); }
+        ImGui::End();
+        ImGui::Render();
+        ImGui_ImplOpenGL3_RenderDrawData (ImGui::GetDrawData());
     }
 
-    // Show the GUI?
-    bool show_gui = true;
     // Some text fields for the gui
     std::string geom_text = "";
     // radius for spheres
@@ -65,12 +63,7 @@ struct imgui_visual final : public mplot::Visual<>
     bool needs_visualmodel_rebuild = true;
 
 protected:
-    void key_callback_extra (int key, [[maybe_unused]] int scancode, int action, [[maybe_unused]] int mods) override
-    {
-        if (key == mplot::key::escape && action == mplot::keyaction::press) { this->show_gui = this->show_gui ? false : true; }
-        if (key == mplot::key::h && action == mplot::keyaction::press) { std::cout << "Esc: Toggle GUI window\n"; }
-    }
-    void mouse_button_callback (int button, int action, int mods = 0)
+    void mouse_button_callback (int button, int action, int mods = 0) override
     {
         ImGuiIO& io = ImGui::GetIO();
         io.AddMouseButtonEvent (button, (action > 0));
@@ -136,7 +129,7 @@ void add_visualmodels (imgui_visual& v)
     // Add TriVisual or SphereVisual here
     if (have_coord) {
         std::cout << "Draw sphere\n";
-        auto sv = std::make_unique<mplot::SphereVisual<>>(coord, v.thickness, v.clr);
+        auto sv = std::make_unique<mplot::SphereVisual<>>(coord, v.thickness * 0.25f, v.clr);
         v.bindmodel (sv);
         sv->setAlpha (0.5f);
         sv->finalize();
@@ -149,7 +142,7 @@ void add_visualmodels (imgui_visual& v)
         v.bindmodel (vvm);
         vvm->thevec = vectr[1];
         vvm->vgoes = mplot::VectorGoes::FromOrigin;
-        vvm->thickness = v.thickness * 0.5f; // A bit thinner than spheres
+        vvm->thickness = v.thickness * 0.1f; // A bit thinner than spheres
         vvm->arrowhead_prop = 0.1f;
         vvm->fixed_colour = true;
         vvm->single_colour = v.clr;
