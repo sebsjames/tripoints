@@ -36,15 +36,12 @@ struct imgui_visual final : public mplot::Visual<>
         ImGui::NewFrame();
         ImGui::Begin("Options");
         if (ImGui::SliderFloat("Thickness", &this->thickness, 0.0f, 0.005f)) { }
-        if (ImGui::ColorEdit3("Colour", this->clr.data())) {
-        }
-
+        if (ImGui::ColorEdit3("Colour", this->clr.data())) { }
         ImGuiInputTextFlags flags { ImGuiInputTextFlags_EscapeClearsAll };
         static char buf1[512] = "";
         if (ImGui::InputText("Coords/Tri (Esc clears)", buf1, IM_ARRAYSIZE(buf1), flags)) {
             this->geom_text = std::string (buf1);
         }
-
         if (ImGui::Button("Draw")) { needs_visualmodel_rebuild = true; }
         if (ImGui::Button("Clear")) { this->vm.clear(); }
         if (ImGui::Button("Clear Last")) { this->vm.pop_back(); }
@@ -126,6 +123,7 @@ void add_visualmodels (imgui_visual& v)
         have_tri = true;
     }
 
+    constexpr sm::vec<float> init_offset = { 0.0f, 0.0f, -0.5f };
     // Add TriVisual or SphereVisual here
     if (have_coord) {
         std::cout << "Draw sphere\n";
@@ -133,8 +131,10 @@ void add_visualmodels (imgui_visual& v)
         v.bindmodel (sv);
         sv->setAlpha (0.5f);
         sv->finalize();
-        v.addVisualModel (sv);
-        v.setSceneTrans (-coord + sm::vec<>{0,0,-2});
+        uint32_t vmid = v.addVisualModelId (sv);
+        if (vmid == 0) {
+            v.setSceneTrans (-coord + init_offset);
+        }
     }
     if (have_vector) {
         std::cout << "Draw vector\n";
@@ -148,16 +148,20 @@ void add_visualmodels (imgui_visual& v)
         vvm->single_colour = v.clr;
         vvm->setAlpha (0.5f);
         vvm->finalize();
-        v.addVisualModel (vvm);
-        v.setSceneTrans (-vectr[0] + sm::vec<>{0,0,-2});
+        uint32_t vmid = v.addVisualModelId (vvm);
+        if (vmid == 0) {
+            v.setSceneTrans (-vectr[0] + init_offset);
+        }
     }
     if (have_tri) {
         std::cout << "Draw triangle\n";
         auto tv = std::make_unique<mplot::TriangleVisual<>> (sm::vec<>{}, tri[0], tri[1], tri[2], v.clr);
         v.bindmodel (tv);
         tv->finalize();
-        v.addVisualModel (tv);
-        v.setSceneTrans (-(tri[0] + tri[1] + tri[2]) / 3.0f + sm::vec<>{0,0,-2});
+        uint32_t vmid = v.addVisualModelId (tv);
+        if (vmid == 0) {
+            v.setSceneTrans (-(tri[0] + tri[1] + tri[2]) / 3.0f + init_offset);
+        }
     }
 
     v.needs_visualmodel_rebuild = false;
