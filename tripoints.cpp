@@ -34,7 +34,12 @@ struct imgui_visual final : public mplot::Visual<>
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-        ImGui::Begin("Options");
+        ImGuiWindowFlags window_flags = 0;
+        if (this->no_move) {
+            window_flags |= ImGuiWindowFlags_NoMove;
+            window_flags |= ImGuiWindowFlags_NoResize;
+        }
+        ImGui::Begin("Options", NULL, window_flags);
         if (ImGui::SliderFloat("Thickness", &this->thickness, 0.0f, 0.005f)) { }
         if (ImGui::ColorEdit3("Colour", this->clr.data())) { }
         ImGuiInputTextFlags flags { ImGuiInputTextFlags_EscapeClearsAll };
@@ -45,11 +50,16 @@ struct imgui_visual final : public mplot::Visual<>
         if (ImGui::Button("Draw")) { needs_visualmodel_rebuild = true; }
         if (ImGui::Button("Clear")) { this->vm.clear(); }
         if (ImGui::Button("Clear Last")) { this->vm.pop_back(); }
+        // Checkbox for 'lock' (will lock move and resize)
+        ImGui::Checkbox("Lock window", &this->no_move);
         ImGui::End();
         ImGui::Render();
+
         ImGui_ImplOpenGL3_RenderDrawData (ImGui::GetDrawData());
     }
 
+    // Lock the GUI in place?
+    bool no_move = true;
     // Some text fields for the gui
     std::string geom_text = "";
     // radius for spheres
