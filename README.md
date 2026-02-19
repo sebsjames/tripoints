@@ -43,3 +43,11 @@ Try entering these strings into the text field:
 (0,0,0),(0,0,1)
 (0,0,0),(0.5,0,0),(0,0.5,0)
 ```
+
+## Copy and paste
+
+There's a small possible gotcha. 
+If Ctrl-C to copy or Ctrl-V to paste doesn't seem to work in tripoints, check to see if you have Gnome's "Locate Pointer" accessibility feature turned on. 
+If so, the Left-Ctrl key press event can fail to make its way into Dear ImGui. 
+Workarounds are to use Right-Ctrl or turn off "Locate Pointer".
+See the [ImGui issue](https://github.com/ocornut/imgui/issues/9224) and [GLFW issue](https://github.com/glfw/glfw/issues/2826) for more details.
